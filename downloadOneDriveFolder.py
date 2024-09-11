@@ -43,18 +43,38 @@ class OneDriveDownloader:
                 os.makedirs(new_folder_path, exist_ok=True)
                 await self.download_folder(drive_id, item.id, new_folder_path)
             elif item.file:  # If it's a file, download it
+                os.makedirs(parent_directory, exist_ok=True)
                 await self.download_file(drive_id, item.id, item.name, parent_directory)
+                
+    async def get_region(self):
+        """Fetch the tenant's country/region using the Microsoft Graph API."""
+        try:
+            # Fetch organization details using the Graph API
+            organization = await self.graph_client.organization.get()
+            print(organization)
 
+            # Extract country/region information
+            country_code = organization.value[0].country_letter_code
+
+            return country_code
+        except Exception as e:
+            print(f"Failed to retrieve tenant region: {str(e)}")
+            return None
+            
     async def search_and_download(self, folder_name, web_url):
         """Search for a folder in OneDrive, verify webUrl, and download its contents."""
         try:
+
+            region = await self.get_region()
+            if region == 'IN' :
+                region = region + 'D'
 
             # Construct the search request body
             request_body = QueryPostRequestBody(
                 requests=[
                     SearchRequest(
                         entity_types=[EntityType.DriveItem],
-                        region="IND",
+                        region=region,
                         query=SearchQuery(query_string=folder_name),
                         from_=0,
                         size=25,
